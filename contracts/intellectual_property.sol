@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-
-import "@openzeppelin/contracts/access/Ownable.sol";
+pragma solidity ^0.8.20;
 
 // Define the IP licensing contract
-contract IPLicensing is Ownable {
+contract IPLicensing {
+    address owner;
+
     string public ipName;
     string public ipDescription;
     address public licensee;
     uint256 public royaltyPercentage; // Royalty percentage to be paid to IP owner
     bool public isRevoked;
 
-    event CheckBalance(string text, uint amount);
+    event CheckBalance(uint amount);
 
     constructor(
         string memory _ipName,
@@ -23,6 +23,7 @@ contract IPLicensing is Ownable {
         ipDescription = _ipDescription;
         licensee = _licensee;
         royaltyPercentage = _royaltyPercentage;
+        owner = msg.sender;
     }
 
     // Event for recording IP usage
@@ -30,6 +31,11 @@ contract IPLicensing is Ownable {
 
     // Event for recording royalty payments
     event RoyaltyPayment(address indexed payer, uint256 amount);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner can call this function");
+        _;
+    }
 
     // Function to grant usage rights and record usage
     function grantUsage() external payable {
@@ -41,7 +47,6 @@ contract IPLicensing is Ownable {
 
         // Calculate and pay royalties to the IP owner
         uint256 royaltyAmount = (msg.value * royaltyPercentage) / 100;
-        address owner = owner();
         payable(owner).transfer(royaltyAmount);
 
         // Transfer the remaining amount to the licensee
@@ -58,16 +63,12 @@ contract IPLicensing is Ownable {
     function withdrawRoyalties() external onlyOwner {
         require(!isRevoked, "IP license is revoked");
         uint256 contractBalance = address(this).balance;
-        address owner = owner();
         payable(owner).transfer(contractBalance);
     }
     
     function getBalance(address user_account) external returns (uint){
-    
-       string memory data = "User Balance is : ";
        uint user_bal = user_account.balance;
-       emit CheckBalance(data, user_bal );
+       emit CheckBalance(user_bal);
        return (user_bal);
-
     }
 }
